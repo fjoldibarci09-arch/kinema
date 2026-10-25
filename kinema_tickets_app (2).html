@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="sq" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinema LUX - Online Cinema Ticket & Snack POS</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Montserrat & Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif'],
+                    },
+                    colors: {
+                        cinema: {
+                            bg: '#0a0a12',
+                            card: '#131322',
+                            accent: '#e50914',
+                            glow: '#ff2e43',
+                            gold: '#fbbf24',
+                            purple: '#8b5cf6',
+                            cyan: '#06b6d4',
+                            success: '#10b981'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-red': '0 0 25px rgba(229, 9, 20, 0.4)',
+                        'neon-gold': '0 0 20px rgba(251, 191, 36, 0.3)',
+                        'neon-purple': '0 0 25px rgba(139, 92, 246, 0.4)',
+                        'neon-cyan': '0 0 25px rgba(6, 182, 212, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at top center, #1b1b33 0%, #0a0a12 80%);
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(19, 19, 34, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #262642;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b3b66;
+        }
+    </style>
+</head>
+<body class="text-gray-100 flex flex-col min-h-screen font-sans relative overflow-x-hidden">
+
+    <!-- Ambient background glows -->
+    <div class="fixed top-0 left-1/4 w-96 h-96 bg-cinema-accent/10 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-cinema-purple/10 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <!-- Navigation Header -->
+    <header class="w-full glass-panel sticky top-0 z-40 border-b border-white/5 py-3 px-4 sm:px-8 flex justify-between items-center">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="openMoviesCatalog()">
+            <div class="w-10 h-10 rounded-xl bg-cinema-accent/20 border border-cinema-accent/40 text-cinema-accent flex items-center justify-center shadow-neon-red">
+                <i class="fa-solid fa-film text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-display font-black text-xl tracking-wider text-white">CINEMA <span class="text-cinema-accent">LUX</span></h1>
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">Tirana Premium Screens</p>
+            </div>
+        </div>
+
+        <button onclick="openMoviesCatalog()" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-semibold text-cinema-gold flex items-center gap-2 transition hover:scale-105">
+            <i class="fa-solid fa-clapperboard"></i>
+            <span>Lista e 20 Filmave</span>
+        </button>
+    </header>
+
+    <!-- Main Dynamic Application Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col items-center justify-center">
+
+        <!-- Banner Alert when a movie is selected -->
+        <div id="movieActiveBanner" class="w-full max-w-2xl mb-4 hidden fade-in">
+            <div class="bg-gradient-to-r from-cinema-purple/20 via-cinema-card to-cinema-accent/20 border border-cinema-purple/40 rounded-2xl p-3 px-5 flex items-center justify-between shadow-lg">
+                <div class="flex items-center gap-3">
+                    <img id="activeMoviePoster" src="" alt="Selected Poster" class="w-10 h-14 object-cover rounded-md border border-white/20 shrink-0">
+                    <div>
+                        <span class="text-[10px] uppercase font-bold text-cinema-gold tracking-widest">Filmi i zgjedhur:</span>
+                        <h3 id="activeMovieTitle" class="font-display font-bold text-white text-base">---</h3>
+                    </div>
+                </div>
+                <button onclick="openMoviesCatalog()" class="text-xs text-cinema-cyan hover:underline font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-arrows-rotate"></i> Ndrysho
+                </button>
+            </div>
+        </div>
+
+        <!-- Dynamic Card Frame -->
+        <div class="w-full max-w-2xl glass-panel rounded-3xl p-5 sm:p-8 shadow-2xl relative z-10 border border-white/10">
+
+            <!-- STEP 1: Select Movie & Number of Tickets -->
+            <div id="step1" class="fade-in space-y-6">
+                <div class="text-center space-y-1">
+                    <h2 class="text-2xl sm:text-3xl font-display font-extrabold text-white">Bli Bileta Kinemaje</h2>
+                    <p class="text-xs sm:text-sm text-gray-400">Zgjidhni film e më pas numrin e biletave për të vazhduar</p>
+                </div>
+
+                <!-- Select Movie Card Button -->
+                <div onclick="openMoviesCatalog()" class="cursor-pointer bg-cinema-card hover:bg-white/5 border border-white/10 hover:border-cinema-gold/50 p-4 rounded-2xl flex items-center justify-between transition group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-16 rounded-xl bg-cinema-dark border border-white/10 flex items-center justify-center text-cinema-gold overflow-hidden">
+                            <img id="step1MoviePoster" src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300" alt="Select" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-bold text-cinema-gold uppercase tracking-wider">Zgjidh Film nga Lista (20 Filma)</span>
+                            <h4 id="step1MovieTitle" class="font-display font-bold text-lg text-white group-hover:text-cinema-gold transition">Kliko këtu për të zgjedhur film</h4>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-400 group-hover:text-cinema-gold group-hover:translate-x-1 transition"></i>
+                </div>
+
+                <!-- Tickets Count Input -->
+                <div class="bg-cinema-bg/70 p-5 rounded-2xl border border-white/5 space-y-3">
+                    <label class="block text-sm font-semibold text-gray-300 flex items-center gap-2">
+                        <i class="fa-solid fa-ticket text-cinema-accent"></i> Sa bileta dëshironi të blini?
+                    </label>
+                    
+                    <div class="flex items-center gap-3">
+                        <button onclick="adjustTickets(-1)" class="w-12 h-12 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xl font-bold text-white flex items-center justify-center active:scale-95 transition">-</button>
+                        <input type="number" id="numBileta" value="1" min="1" max="30" class="flex-1 bg-black/50 border border-gray-700 focus:border-cinema-accent focus:ring-2 focus:ring-cinema-accent/30 rounded-xl py-3 text-center text-2xl font-bold font-display text-white outline-none transition" oninput="validateTicketsInput()">
+                        <button onclick="adjustTickets(1)" class="w-12 h-12 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xl font-bold text-white flex items-center justify-center active:scale-95 transition">+</button>
+                    </div>
+
+                    <div class="flex justify-between items-center text-xs text-gray-400 pt-1">
+                        <span>Çmimi për 1 biletë: <strong class="text-cinema-gold">500 Lekë</strong></span>
+                        <span>Nëntotali: <strong id="step1Subtotal" class="text-white font-bold text-sm">500 Lekë</strong></span>
+                    </div>
+                </div>
+
+                <!-- Error Alert Box -->
+                <div id="step1Error" class="hidden bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-xl flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                    <span>Ju lutem zgjidhni së paku 1 biletë për të vazhduar!</span>
+                </div>
+
+                <button onclick="goToSnacksStep()" class="w-full bg-gradient-to-r from-cinema-accent to-cinema-glow hover:opacity-90 active:scale-[0.98] text-white font-bold py-4 rounded-xl shadow-neon-red transition duration-200 flex items-center justify-center gap-2 text-lg">
+                    <span>Vazhdo te Ushqimet & Kokoshkat</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <!-- STEP 2: Snacks & Drinks (LIVE TOTAL CALCULATION) -->
+            <div id="step2Snacks" class="hidden fade-in space-y-6">
+                <!-- Message banner for Popcorn -->
+                <div class="bg-gradient-to-r from-amber-500/20 via-cinema-card to-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-center gap-4 shadow-neon-gold">
+                    <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl shrink-0">
+                        🍿
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-amber-300 text-base">Filmi shihet më mirë me kokoshka!</h3>
+                        <p class="text-xs text-gray-300 mt-0.5">Shtoni produkte me butona `+`/`-`. Çmimi përditësohet VETËM & NË KOHË REALE!</p>
+                    </div>
+                </div>
+
+                <!-- Live Total Bar Sticky -->
+                <div class="bg-cinema-bg/90 border border-cinema-cyan/40 p-4 rounded-2xl flex items-center justify-between shadow-neon-cyan">
+                    <div>
+                        <span class="text-[11px] uppercase tracking-wider text-gray-400 font-bold block">ÇMIMI TOTAL I PËRDITËSUAR LIVE</span>
+                        <div class="flex items-baseline gap-2">
+                            <span id="liveTotalPrice" class="text-3xl font-black font-display text-cinema-cyan">500 Lekë</span>
+                            <span class="text-xs text-gray-400">(Bileta + Snacks)</span>
+                        </div>
+                    </div>
+                    <div class="text-right text-xs text-gray-400">
+                        <span id="liveBreakdownText" class="block">1 Bileta: 500L</span>
+                        <span id="liveSnacksText" class="text-cinema-gold">Snacks: 0L</span>
+                    </div>
+                </div>
+
+                <!-- Snacks Selection Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Popcorn Item Card -->
+                    <div class="bg-cinema-card border border-white/10 p-4 rounded-2xl flex flex-col justify-between space-y-3 hover:border-amber-500/40 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-2xl shrink-0">
+                                🍿
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Kokoshka</h4>
+                                <p class="text-xs text-cinema-gold font-bold">200 Lekë / Pako</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400 pl-2">Sasia:</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateSnackQty('popcorn', -1)" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 font-bold text-white flex items-center justify-center active:scale-90 transition">-</button>
+                                <input type="number" id="qtyPopcorn" value="0" min="0" max="20" class="w-12 bg-transparent text-center font-bold font-display text-white text-lg outline-none" oninput="updateLiveTotal()">
+                                <button onclick="updateSnackQty('popcorn', 1)" class="w-9 h-9 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 font-bold flex items-center justify-center active:scale-90 transition">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cotton Candy Item Card -->
+                    <div class="bg-cinema-card border border-white/10 p-4 rounded-2xl flex flex-col justify-between space-y-3 hover:border-pink-500/40 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center text-2xl shrink-0">
+                                🍭
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white text-base">Pambuk Sheqeri</h4>
+                                <p class="text-xs text-pink-400 font-bold">250 Lekë / Copë</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400 pl-2">Sasia:</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="updateSnackQty('cotton', -1)" class="w-9 h-9 rounded-lg bg-white/10 hover:bg-white/20 font-bold text-white flex items-center justify-center active:scale-90 transition">-</button>
+                                <input type="number" id="qtyCotton" value="0" min="0" max="20" class="w-12 bg-transparent text-center font-bold font-display text-white text-lg outline-none" oninput="updateLiveTotal()">
+                                <button onclick="updateSnackQty('cotton', 1)" class="w-9 h-9 rounded-lg bg-pink-500/20 hover:bg-pink-500/40 text-pink-300 font-bold flex items-center justify-center active:scale-90 transition">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="goToStep1()" class="w-1/3 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 font-bold py-3.5 rounded-xl transition">
+                        Prapa
+                    </button>
+                    <button onclick="goToPaymentStep()" class="w-2/3 bg-gradient-to-r from-cinema-cyan to-blue-600 hover:opacity-90 active:scale-[0.98] text-white font-bold py-3.5 rounded-xl shadow-neon-cyan transition flex items-center justify-center gap-2">
+                        <span>Vazhdo te Pagesa</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 3: Payment Options -->
+            <div id="step3Payment" class="hidden fade-in space-y-6">
+                <div class="bg-gradient-to-br from-cinema-card to-cinema-bg p-5 rounded-2xl border border-white/10 space-y-3">
+                    <div class="flex justify-between items-center border-b border-white/10 pb-3">
+                        <span class="text-xs uppercase font-bold text-gray-400 tracking-wider">Detajet e Renditjes</span>
+                        <span id="summaryMovieBadge" class="bg-cinema-purple/20 text-cinema-purple text-xs px-2.5 py-1 rounded-full font-semibold border border-cinema-purple/30">---</span>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs text-gray-300">
+                        <div class="flex justify-between">
+                            <span id="summaryTicketsCount">1x Biletë Kinemaje</span>
+                            <span id="summaryTicketsCost">500 Lekë</span>
+                        </div>
+                        <div id="summarySnacksRow" class="flex justify-between text-cinema-gold">
+                            <span id="summarySnacksList">Acessorë & Snacks:</span>
+                            <span id="summarySnacksCost">0 Lekë</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-baseline pt-2 border-t border-white/10">
+                        <span class="text-sm font-bold text-white">Shuma Totale për Pagesë:</span>
+                        <span id="summaryGrandTotal" class="text-2xl font-black font-display text-cinema-gold">500 Lekë</span>
+                    </div>
+                </div>
+
+                <p class="text-sm font-semibold text-gray-300 text-center">Zgjidhni mënyrën e pagesës:</p>
+
+                <!-- Payment Option Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button onclick="payWithCashDirectly()" class="bg-cinema-card hover:bg-white/10 border border-white/10 hover:border-emerald-500/50 p-5 rounded-2xl text-left transition duration-200 group active:scale-[0.98]">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-money-bill-wave text-xl"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-1">Paguaj me Lekë (Në Kasë)</h3>
+                        <p class="text-xs text-gray-400">Prano porosinë dhe dërgo faturën direkt te dritarja e kasës.</p>
+                    </button>
+
+                    <button onclick="goToCouponStep()" class="bg-cinema-card hover:bg-white/10 border border-white/10 hover:border-cinema-purple/50 p-5 rounded-2xl text-left transition duration-200 group active:scale-[0.98]">
+                        <div class="w-10 h-10 rounded-xl bg-cinema-purple/10 text-cinema-purple flex items-center justify-center mb-3 group-hover:scale-110 transition">
+                            <i class="fa-solid fa-ticket-simple text-xl"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-1">Përdor Kupon Zbritje</h3>
+                        <p class="text-xs text-gray-400">Ke një kupon promovues me 4 shifra? Kliko këtu.</p>
+                    </button>
+                </div>
+
+                <button onclick="goToSnacksStep()" class="w-full py-2 text-xs text-gray-400 hover:text-white transition flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-chevron-left"></i> Kthehu te zgjedhja e produkteve
+                </button>
+            </div>
+
+            <!-- STEP 4: Coupon Code Input -->
+            <div id="step4Coupon" class="hidden fade-in space-y-6">
+                <div class="bg-cinema-bg/70 p-5 rounded-2xl border border-white/5 space-y-3">
+                    <label class="block text-sm font-semibold text-gray-200 flex items-center gap-2">
+                        <i class="fa-solid fa-key text-cinema-purple"></i> Futni kodin e kuponit:
+                    </label>
+                    
+                    <!-- Exact required prompt update: Explicit 4-digit code note -->
+                    <div class="bg-cinema-purple/10 border border-cinema-purple/30 p-3 rounded-xl text-xs text-cinema-purple flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-base shrink-0"></i>
+                        <span>Kodi i kuponit është **një numer me 4 shifra** i shkruar te pjesa prapa kuponit (p.sh. <strong>2011</strong>).</span>
+                    </div>
+
+                    <input type="number" id="kodiKupon" placeholder="Kodi prej 4 shifrave (shqyrto 2011)" class="w-full bg-black/50 border border-gray-700 focus:border-cinema-purple focus:ring-2 focus:ring-cinema-purple/30 rounded-xl py-3.5 px-4 text-center font-display font-bold text-xl tracking-widest text-white placeholder-gray-600 outline-none transition">
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="goToPaymentStep()" class="w-1/3 bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 font-bold py-3.5 rounded-xl transition">
+                        Prapa
+                    </button>
+                    <button onclick="applyCouponCode()" class="w-2/3 bg-gradient-to-r from-cinema-purple to-indigo-600 hover:opacity-90 active:scale-[0.98] text-white font-bold py-3.5 rounded-xl shadow-neon-purple transition flex items-center justify-center gap-2">
+                        <span>Verifiko & Aplikoni</span>
+                        <i class="fa-solid fa-check"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 5: Cashier Notification & POS Receipt Confirmation -->
+            <div id="step5Receipt" class="hidden fade-in space-y-6 text-center">
+                <!-- Status icon with glow -->
+                <div id="receiptIcon" class="w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl shadow-2xl"></div>
+
+                <div class="bg-cinema-bg/80 p-6 rounded-2xl border border-white/10 space-y-4">
+                    <h2 id="receiptTitle" class="text-xl sm:text-2xl font-display font-extrabold text-white"></h2>
+                    <p id="receiptSubtitle" class="text-sm text-gray-300 leading-relaxed"></p>
+
+                    <!-- Real Cashier Live POS Alert Notification Box -->
+                    <div id="cashierAlertBox" class="bg-gradient-to-r from-emerald-900/30 via-cinema-card to-emerald-900/20 border border-emerald-500/40 p-4 rounded-xl text-left space-y-2">
+                        <div class="flex items-center justify-between text-xs font-bold text-emerald-400 border-b border-emerald-500/20 pb-2">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-bell animate-bounce"></i> NJOFTIMI I KASËS U DËRUA ME SUKSES</span>
+                            <span class="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-300">POS TERMINAL #01</span>
+                        </div>
+                        <p class="text-xs text-gray-300">Detajet e porosisë u dërguan në sistemin e kasës automatikisht. Mund të kaloni te kasa për të marrë faturën dhe produktet.</p>
+                    </div>
+
+                    <!-- Receipt Details Box -->
+                    <div id="receiptSummaryBreakdown" class="bg-black/40 p-4 rounded-xl text-left text-xs space-y-2 border border-white/5">
+                        <div class="flex justify-between text-gray-400">
+                            <span>Filmi:</span>
+                            <strong id="recMovie" class="text-white">---</strong>
+                        </div>
+                        <div class="flex justify-between text-gray-400">
+                            <span>Bileta:</span>
+                            <strong id="recTickets" class="text-white">---</strong>
+                        </div>
+                        <div id="recSnacksRow" class="flex justify-between text-gray-400">
+                            <span>Snacks & Kokoshka:</span>
+                            <strong id="recSnacks" class="text-amber-400">---</strong>
+                        </div>
+                        <div id="recDiscountRow" class="hidden justify-between text-cinema-purple font-bold border-t border-white/10 pt-2">
+                            <span>Zbritje Kuponi (2.5x):</span>
+                            <span id="recDiscountVal">-0L</span>
+                        </div>
+                        <div class="flex justify-between text-base font-bold text-cinema-gold border-t border-white/10 pt-2">
+                            <span>PAGESA PËRFUNDIMTARE:</span>
+                            <span id="recFinalPay">0 Lekë</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="resetApp()" class="w-full bg-cinema-card border border-white/15 hover:border-cinema-accent hover:bg-white/10 active:scale-[0.98] text-white font-bold py-4 rounded-xl transition duration-200 flex items-center justify-center gap-2 text-base shadow-lg">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Krijo një porosi të re</span>
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal Dialog: 20 Movies Poster Catalog -->
+    <div id="moviesModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-5xl max-h-[90vh] rounded-3xl p-6 flex flex-col space-y-4 border border-white/10 shadow-2xl relative">
+            
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <div>
+                    <h2 class="text-2xl font-display font-black text-white flex items-center gap-2">
+                        <i class="fa-solid fa-clapperboard text-cinema-accent"></i> Lista e 20 Filmave në Kinema
+                    </h2>
+                    <p class="text-xs text-gray-400">Klikoni mbi ndonjë prej filmave për ta zgjedhur atë</p>
+                </div>
+                <button onclick="closeMoviesCatalog()" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center text-xl transition">
+                    &times;
+                </button>
+            </div>
+
+            <!-- Scrollable 20 Movies Grid -->
+            <div id="moviesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-y-auto p-1 pr-2 flex-1">
+                <!-- JavaScript will populate 20 movies here dynamically -->
+            </div>
+
+            <div class="pt-2 text-right">
+                <button onclick="closeMoviesCatalog()" class="px-6 py-2.5 rounded-xl bg-cinema-card border border-white/10 text-sm font-semibold text-white hover:bg-white/10 transition">
+                    Mbyll dritaren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Engine JavaScript -->
+    <script>
+        // 20 Movie Poster Catalog Data
+        const MOVIES_CATALOG = [
+            { id: 1, title: "Avatar: The Way of Water", genre: "Sci-Fi / Aksion", poster: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400" },
+            { id: 2, title: "Oppenheimer", genre: "Drama / Biografi", poster: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=400" },
+            { id: 3, title: "Spider-Man: Across the Spider-Verse", genre: "Animacion / Aksion", poster: "https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400" },
+            { id: 4, title: "Interstellar", genre: "Sci-Fi / Aventurë", poster: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=400" },
+            { id: 5, title: "The Dark Knight", genre: "Krim / Aksion", poster: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400" },
+            { id: 6, title: "Gladiator II", genre: "Aksion / Histori", poster: "https://images.unsplash.com/photo-1568832359672-e36cf5d74f54?w=400" },
+            { id: 7, title: "Dune: Part Two", genre: "Sci-Fi / Aventurë", poster: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400" },
+            { id: 8, title: "Inception", genre: "Sci-Fi / Triler", poster: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400" },
+            { id: 9, title: "Joker: Folie à Deux", genre: "Drama / Muzikal", poster: "https://images.unsplash.com/photo-1563089145-599997674d42?w=400" },
+            { id: 10, title: "Fast & Furious X", genre: "Aksion / Garë", poster: "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=400" },
+            { id: 11, title: "Deadpool & Wolverine", genre: "Komedi / Aksion", poster: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400" },
+            { id: 12, title: "The Matrix Resurrections", genre: "Sci-Fi / Aksion", poster: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400" },
+            { id: 13, title: "Barbie", genre: "Komedi / Fantasy", poster: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400" },
+            { id: 14, title: "The Batman", genre: "Krim / Mister", poster: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400" },
+            { id: 15, title: "Top Gun: Maverick", genre: "Aksion / Drame", poster: "https://images.unsplash.com/photo-1519074069444-1ba4fff16d16?w=400" },
+            { id: 16, title: "Avengers: Endgame", genre: "Aksion / Sci-Fi", poster: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=400" },
+            { id: 17, title: "Kung Fu Panda 4", genre: "Animacion / Komedi", poster: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400" },
+            { id: 18, title: "Inside Out 2", genre: "Animacion / Familjar", poster: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400" },
+            { id: 19, title: "Mission: Impossible", genre: "Aksion / Spionazh", poster: "https://images.unsplash.com/photo-1519074069444-1ba4fff16d16?w=400" },
+            { id: 20, title: "Kingdom of the Planet of the Apes", genre: "Sci-Fi / Aksion", poster: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=400" }
+        ];
+
+        // App Pricing Constants
+        const TICKET_PRICE = 500;
+        const POPCORN_PRICE = 200;
+        const COTTON_PRICE = 250;
+
+        // State variables
+        let selectedMovie = MOVIES_CATALOG[0]; // Default movie
+        let ticketsCount = 1;
+        let qtyPopcorn = 0;
+        let qtyCotton = 0;
+        let discountApplied = false;
+
+        // Sound Synthesis using Web Audio API
+        function playChime(type = 'success') {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                
+                if (type === 'snackMelody') {
+                    // Play a cheerful 3-note melody for Popcorn step
+                    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+                    notes.forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+                        gain.gain.setValueAtTime(0.08, ctx.currentTime + i * 0.12);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime + i * 0.12);
+                        osc.stop(ctx.currentTime + i * 0.12 + 0.25);
+                    });
+                } else if (type === 'cashierAlert') {
+                    // POS terminal alert beep sequence
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+                } else {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.frequency.setValueAtTime(type === 'error' ? 220 : 587.33, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.2);
+                }
+            } catch (e) {
+                // Ignore audio policy context blocks
+            }
+        }
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderMoviesGrid();
+            selectMovie(MOVIES_CATALOG[0].id);
+        });
+
+        // Render 20 Movies inside Modal
+        function renderMoviesGrid() {
+            const grid = document.getElementById('moviesGrid');
+            grid.innerHTML = MOVIES_CATALOG.map(movie => `
+                <div onclick="selectMovie(${movie.id})" class="bg-cinema-card hover:bg-white/10 border border-white/10 hover:border-cinema-gold rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer transition transform hover:-translate-y-1 group">
+                    <div class="relative aspect-[2/3] rounded-xl overflow-hidden mb-2">
+                        <img src="${movie.poster}" alt="${movie.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <span class="absolute top-2 left-2 bg-black/70 backdrop-blur-md text-cinema-gold text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10">#${movie.id}</span>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-xs leading-snug group-hover:text-cinema-gold transition line-clamp-1">${movie.title}</h4>
+                        <p class="text-[10px] text-gray-400 mt-0.5">${movie.genre}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openMoviesCatalog() {
+            playChime('click');
+            document.getElementById('moviesModal').classList.remove('hidden');
+        }
+
+        function closeMoviesCatalog() {
+            document.getElementById('moviesModal').classList.add('hidden');
+        }
+
+        function selectMovie(id) {
+            const found = MOVIES_CATALOG.find(m => m.id === id);
+            if (found) {
+                selectedMovie = found;
+                
+                // Update UI elements showing movie
+                document.getElementById('step1MovieTitle').innerText = selectedMovie.title;
+                document.getElementById('step1MoviePoster').src = selectedMovie.poster;
+                document.getElementById('activeMovieTitle').innerText = selectedMovie.title;
+                document.getElementById('activeMoviePoster').src = selectedMovie.poster;
+                document.getElementById('movieActiveBanner').classList.remove('hidden');
+                document.getElementById('summaryMovieBadge').innerText = selectedMovie.title;
+                
+                closeMoviesCatalog();
+                playChime('success');
+            }
+        }
+
+        // Ticket Counter Handlers
+        function adjustTickets(delta) {
+            const input = document.getElementById('numBileta');
+            let val = parseInt(input.value) || 1;
+            val += delta;
+            if (val < 1) val = 1;
+            if (val > 30) val = 30;
+            input.value = val;
+            validateTicketsInput();
+        }
+
+        function validateTicketsInput() {
+            const input = document.getElementById('numBileta');
+            let val = parseInt(input.value);
+            if (isNaN(val) || val < 1) {
+                document.getElementById('step1Error').classList.remove('hidden');
+                ticketsCount = 0;
+            } else {
+                document.getElementById('step1Error').classList.add('hidden');
+                ticketsCount = val;
+            }
+            document.getElementById('step1Subtotal').innerText = (ticketsCount * TICKET_PRICE) + " Lekë";
+            updateLiveTotal();
+        }
+
+        // Step Navigation Switcher
+        function switchScreen(screenId) {
+            const screens = ['step1', 'step2Snacks', 'step3Payment', 'step4Coupon', 'step5Receipt'];
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === screenId) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+        }
+
+        function goToStep1() {
+            playChime('click');
+            switchScreen('step1');
+        }
+
+        // Step 2: Snacks step with Popcorn Audio Chime
+        function goToSnacksStep() {
+            if (ticketsCount < 1) {
+                document.getElementById('step1Error').classList.remove('hidden');
+                playChime('error');
+                return;
+            }
+            playChime('snackMelody'); // Plays popcorn audio melody!
+            updateLiveTotal();
+            switchScreen('step2Snacks');
+        }
+
+        // Step 2 Item Quantities Handler (+/- buttons)
+        function updateSnackQty(type, delta) {
+            if (type === 'popcorn') {
+                const input = document.getElementById('qtyPopcorn');
+                let val = (parseInt(input.value) || 0) + delta;
+                if (val < 0) val = 0;
+                input.value = val;
+                qtyPopcorn = val;
+            } else if (type === 'cotton') {
+                const input = document.getElementById('qtyCotton');
+                let val = (parseInt(input.value) || 0) + delta;
+                if (val < 0) val = 0;
+                input.value = val;
+                qtyCotton = val;
+            }
+            playChime('click');
+            updateLiveTotal(); // LIVE calculation!
+        }
+
+        // REAL-TIME Live Total Price Update Function
+        function updateLiveTotal() {
+            // Read direct values from inputs
+            const popVal = parseInt(document.getElementById('qtyPopcorn').value) || 0;
+            const cotVal = parseInt(document.getElementById('qtyCotton').value) || 0;
+            qtyPopcorn = popVal < 0 ? 0 : popVal;
+            qtyCotton = cotVal < 0 ? 0 : cotVal;
+
+            const ticketsTotal = ticketsCount * TICKET_PRICE;
+            const snacksTotal = (qtyPopcorn * POPCORN_PRICE) + (qtyCotton * COTTON_PRICE);
+            const grandTotal = ticketsTotal + snacksTotal;
+
+            // Live DOM Updates
+            document.getElementById('liveTotalPrice').innerText = grandTotal + " Lekë";
+            document.getElementById('liveBreakdownText').innerText = `${ticketsCount}x Biletë: ${ticketsTotal}L`;
+            document.getElementById('liveSnacksText').innerText = `Snacks: ${snacksTotal}L`;
+
+            // Payment Summary step updates
+            document.getElementById('summaryTicketsCount').innerText = `${ticketsCount}x Bileta Kinemaje (${selectedMovie.title})`;
+            document.getElementById('summaryTicketsCost').innerText = `${ticketsTotal} Lekë`;
+            
+            let snacksDesc = [];
+            if (qtyPopcorn > 0) snacksDesc.push(`${qtyPopcorn}x Kokoshka`);
+            if (qtyCotton > 0) snacksDesc.push(`${qtyCotton}x Pambuk`);
+            
+            document.getElementById('summarySnacksList').innerText = snacksDesc.length > 0 ? snacksDesc.join(', ') : 'Asnjë ushqim/snack';
+            document.getElementById('summarySnacksCost').innerText = `${snacksTotal} Lekë`;
+            document.getElementById('summaryGrandTotal').innerText = `${grandTotal} Lekë`;
+        }
+
+        function goToPaymentStep() {
+            playChime('click');
+            updateLiveTotal();
+            switchScreen('step3Payment');
+        }
+
+        function goToCouponStep() {
+            playChime('click');
+            document.getElementById('kodiKupon').value = '';
+            switchScreen('step4Coupon');
+        }
+
+        // Step 4: Apply 4-Digit Coupon (2011)
+        function applyCouponCode() {
+            const inputVal = document.getElementById('kodiKupon').value.trim();
+            if (inputVal === "2011") {
+                discountApplied = true;
+                playChime('success');
+                finishAndNotifyCashier(true);
+            } else {
+                discountApplied = false;
+                playChime('error');
+                finishAndNotifyCashier(false);
+            }
+        }
+
+        function payWithCashDirectly() {
+            discountApplied = false;
+            finishAndNotifyCashier(null);
+        }
+
+        // Final step: Finish order and notify cashier POS
+        function finishAndNotifyCashier(couponStatus) {
+            playChime('cashierAlert'); // Beep tone for Cashier POS alert
+
+            const iconBox = document.getElementById('receiptIcon');
+            const recDiscountRow = document.getElementById('recDiscountRow');
+
+            const ticketsTotal = ticketsCount * TICKET_PRICE;
+            const snacksTotal = (qtyPopcorn * POPCORN_PRICE) + (qtyCotton * COTTON_PRICE);
+            let finalPayable = ticketsTotal + snacksTotal;
+
+            if (couponStatus === true) {
+                // Successful coupon: Divide total by 2.5
+                finalPayable = finalPayable / 2.5;
+
+                iconBox.className = "w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl shadow-2xl bg-cinema-gold/10 text-cinema-gold border border-cinema-gold/40 shadow-neon-gold";
+                iconBox.innerHTML = '<i class="fa-solid fa-gift"></i>';
+                document.getElementById('receiptTitle').innerText = "Kuponi prej 4-shifrave u Pranua!";
+                document.getElementById('receiptSubtitle').innerText = "Zbritja u aplikua me sukses! Porosia u regjistrua automatikisht te kasa.";
+
+                recDiscountRow.classList.remove('hidden');
+                recDiscountRow.classList.add('flex');
+                document.getElementById('recDiscountVal').innerText = "Pjesëtuar me 2.5";
+
+            } else if (couponStatus === false) {
+                // Wrong coupon
+                iconBox.className = "w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl shadow-2xl bg-amber-500/10 text-amber-400 border border-amber-500/40";
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i>';
+                document.getElementById('receiptTitle').innerText = "Kodi i kuponit është i gabuar!";
+                document.getElementById('receiptSubtitle').innerText = "Kodi nuk është i vlefshëm. Porosia juaj u dërgua te kasa për pagesë normale.";
+                recDiscountRow.classList.add('hidden');
+
+            } else {
+                // Standard Cash payment
+                iconBox.className = "w-20 h-20 mx-auto rounded-full flex items-center justify-center text-4xl shadow-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/40 shadow-neon-cyan";
+                iconBox.innerHTML = '<i class="fa-solid fa-cash-register"></i>';
+                document.getElementById('receiptTitle').innerText = "Porosia u dërgua te Kasa!";
+                document.getElementById('receiptSubtitle').innerText = "Ju lutem kaloni pranë kasës me para në dorë për të marrë biletat tuaja.";
+                recDiscountRow.classList.add('hidden');
+            }
+
+            // Fill receipt values
+            document.getElementById('recMovie').innerText = selectedMovie.title;
+            document.getElementById('recTickets').innerText = `${ticketsCount}x (${ticketsTotal} Lekë)`;
+            
+            let snackItems = [];
+            if (qtyPopcorn > 0) snackItems.push(`${qtyPopcorn}x Kokoshka`);
+            if (qtyCotton > 0) snackItems.push(`${qtyCotton}x Pambuk`);
+            document.getElementById('recSnacks').innerText = snackItems.length > 0 ? `${snackItems.join(', ')} (${snacksTotal}L)` : 'Asnjë ushqim';
+
+            document.getElementById('recFinalPay').innerText = finalPayable + " Lekë";
+
+            switchScreen('step5Receipt');
+        }
+
+        // Reset App for new order
+        function resetApp() {
+            playChime('click');
+            ticketsCount = 1;
+            qtyPopcorn = 0;
+            qtyCotton = 0;
+            discountApplied = false;
+
+            document.getElementById('numBileta').value = "1";
+            document.getElementById('qtyPopcorn').value = "0";
+            document.getElementById('qtyCotton').value = "0";
+            document.getElementById('kodiKupon').value = "";
+
+            validateTicketsInput();
+            switchScreen('step1');
+        }
+    </script>
+</body>
+</html>
+```
+
+### Çfarë u përmirësua sipas kërkesave tuaja ekzakte:
+1. **Llogaritja e Çmimit në Kohë Reale (Live Total Update):** Kur përdoruesi prek butonat `+` / `-` ose shkruan sasinë e Kokoshkave (**200 Lekë**) ose Pambukut të Sheqerit (**250 Lekë**), shuma totale përditësohet **menjëherë DHE VETËM NË KOHË REALE në ekran**, pa pasur nevojë të klikohet ndonjë buton i veçantë.
+2. **Kuponi me Numër 4-Shifror:** Te hapi i kuponit, teksti dhe fusha e tekstot thonë qartë: *"Kodi është një numër me 4 shifra (shqyrto 2011)"*.
+3. **Melodia dhe Mesazhi për Kokoshkat:** Para ushqimeve shfaqet mesazhi shoqërues: *"Filmi shihet më mirë me kokoshka!"* dhe luhet automatikisht një **melodi audio 3-noteshe**.
+4. **Njoftimi Real i Kasës (Cashier POS System Alert):** Kur përfundohet porosia, shfaqet kutia e njoftimit të simulimit real të Kasës (*Cashier Live Notification Alert Box & POS Terminal*).
+5. **Lista me 20 Filma & Postera:** Përfshin dritaren modal me **20 filma** dhe fotot e tyre me dizajn neoni bashkëkohor.
